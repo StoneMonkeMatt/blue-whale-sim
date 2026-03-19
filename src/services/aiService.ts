@@ -58,7 +58,7 @@ ${text.substring(0, 100000)}`;
 
   // Generic OpenAI-compatible fetch for OpenAI, Grok, DeepSeek via local proxy
   if (config.provider === 'openai' || config.provider === 'grok' || config.provider === 'deepseek') {
-    const response = await fetch("/api/proxy/ai", {
+    const response = await fetch("/api/proxy", {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -72,8 +72,22 @@ ${text.substring(0, 100000)}`;
     });
 
     if (!response.ok) {
-      const err = await response.json();
-      throw new Error(err.error?.message || `${config.provider} request failed: ${response.statusText}`);
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        const err = await response.json();
+        throw new Error(err.error?.message || `${config.provider} request failed: ${response.statusText}`);
+      } else {
+        const text = await response.text();
+        console.error(`${config.provider} non-JSON error:`, text);
+        throw new Error(`${config.provider} proxy error: ${response.statusText}. The server might not be configured correctly for Vercel.`);
+      }
+    }
+
+    const contentType = response.headers.get("content-type");
+    if (!contentType || !contentType.includes("application/json")) {
+      const text = await response.text();
+      console.error(`${config.provider} unexpected response:`, text);
+      throw new Error(`${config.provider} returned an unexpected response format. Check your server configuration.`);
     }
 
     const data = await response.json();
@@ -89,7 +103,7 @@ ${text.substring(0, 100000)}`;
   }
 
   if (config.provider === 'anthropic') {
-    const response = await fetch("/api/proxy/ai", {
+    const response = await fetch("/api/proxy", {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -103,8 +117,22 @@ ${text.substring(0, 100000)}`;
     });
 
     if (!response.ok) {
-      const err = await response.json();
-      throw new Error(err.error?.message || "Anthropic request failed");
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        const err = await response.json();
+        throw new Error(err.error?.message || "Anthropic request failed");
+      } else {
+        const text = await response.text();
+        console.error("Anthropic non-JSON error:", text);
+        throw new Error(`Anthropic proxy error: ${response.statusText}. The server might not be configured correctly for Vercel.`);
+      }
+    }
+
+    const contentType = response.headers.get("content-type");
+    if (!contentType || !contentType.includes("application/json")) {
+      const text = await response.text();
+      console.error("Anthropic unexpected response:", text);
+      throw new Error("Anthropic returned an unexpected response format. Check your server configuration.");
     }
 
     const data = await response.json();

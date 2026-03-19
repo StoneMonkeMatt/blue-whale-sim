@@ -11,7 +11,7 @@ async function startServer() {
   app.use(express.json());
 
   // Proxy route for AI providers (except Gemini which is client-side)
-  app.post("/api/proxy/ai", async (req, res) => {
+  app.post("/api/proxy", async (req, res) => {
     const { provider, apiKey, model, prompt } = req.body;
 
     const keyToUse = apiKey || process.env[`${provider.toUpperCase()}_API_KEY`];
